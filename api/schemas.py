@@ -80,5 +80,6 @@ class ClientCreateSchema(BaseModel):
 
 class ClientResponseSchema(ClientCreateSchema):
     id: str
+    birth_date: date
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)

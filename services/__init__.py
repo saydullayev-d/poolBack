@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from models.client import Client, Parent, ClientDiagnosis, GroupHistory, Subscription, RenewalHistory, ClientGroup, Relation, Diagnosis, Group, SubscriptionTemplate
 from api.schemas import ClientCreateSchema, ClientResponseSchema, RelationCreateSchema, RelationResponseSchema, DiagnosisCreateSchema, DiagnosisResponseSchema, GroupCreateSchema, GroupResponseSchema, SubscriptionTemplateCreateSchema, SubscriptionTemplateResponseSchema
 from typing import Optional, List
@@ -200,57 +201,84 @@ class ClientService:
         if not result.scalar_one_or_none():
             raise HTTPException(404, f"{entity_name} not found")
 
-    async def create_client(self, client_data: ClientCreateSchema) -> ClientResponseSchema:
-        # Validations
-        if not client_data.phone.startswith('+'):
-            raise HTTPException(400, "Phone must start with +")
-        if client_data.gender not in ["male", "female"]:
-            raise HTTPException(400, "Gender must be 'male' or 'female'")
-        for history in client_data.group_history:
-            if history.action not in ["added", "removed"]:
-                raise HTTPException(400, "Action must be 'added' or 'removed'")
-        # Validate referenced UUIDs
-        for parent in client_data.parents:
-            await self.validate_uuid(Relation, parent.relation_id, "Relation")
-        for diag in client_data.diagnoses:
-            await self.validate_uuid(Diagnosis, diag.diagnosis_id, "Diagnosis")
-        for history in client_data.group_history:
-            await self.validate_uuid(Group, history.group_id, "Group")
-        for sub in client_data.subscriptions:
-            await self.validate_uuid(SubscriptionTemplate, sub.template_id, "SubscriptionTemplate")
-            if sub.group_id:
-                await self.validate_uuid(Group, sub.group_id, "Group")
-            for renewal in sub.renewal_history:
-                await self.validate_uuid(SubscriptionTemplate, renewal.to_template_id, "SubscriptionTemplate")
-                if renewal.from_template_id:
-                    await self.validate_uuid(SubscriptionTemplate, renewal.from_template_id, "SubscriptionTemplate")
-        for group_id in client_data.groups:
-            await self.validate_uuid(Group, group_id, "Group")
 
-        client_dict = client_data.model_dump(exclude={"parents", "diagnoses", "group_history", "subscriptions", "groups"})
+    async def create_client(self, client_data: ClientCreateSchema) -> ClientResponseSchema:
+    # 1. Основные данные клиента
+        client_dict = client_data.model_dump(
+            exclude={"parents", "diagnoses", "group_history", "subscriptions", "groups"}
+        )
         db_client = Client(**client_dict)
         self.db.add(db_client)
-        
+        await self.db.flush()  # чтобы id появился
+
+        # 2. Родители
         for parent in client_data.parents:
             self.db.add(Parent(client_id=db_client.id, **parent.model_dump()))
+
+        # 3. Диагнозы
         for diag in client_data.diagnoses:
             self.db.add(ClientDiagnosis(client_id=db_client.id, **diag.model_dump()))
+
+        # 4. История групп
         for history in client_data.group_history:
-            history_dict = history.model_dump()
-            self.db.add(GroupHistory(client_id=db_client.id, **history_dict))
+            self.db.add(GroupHistory(client_id=db_client.id, **history.model_dump()))
+
+        # 5. Подписки
         for sub in client_data.subscriptions:
             sub_dict = sub.model_dump(exclude={"renewal_history"})
             sub_dict["days_of_week"] = json.dumps(sub_dict["days_of_week"])
             db_sub = Subscription(client_id=db_client.id, **sub_dict)
             self.db.add(db_sub)
+            await self.db.flush()
             for renewal in sub.renewal_history:
                 self.db.add(RenewalHistory(subscription_id=db_sub.id, **renewal.model_dump()))
+
+        # 6. Группы
         for group_id in client_data.groups:
             self.db.add(ClientGroup(client_id=db_client.id, group_id=group_id))
 
         await self.db.commit()
-        await self.db.refresh(db_client)
-        return ClientResponseSchema.model_validate(db_client)
+
+        # 7. Повторная загрузка со связями
+        stmt = (
+            select(Client)
+            .options(
+                selectinload(Client.parents),
+                selectinload(Client.diagnoses),
+                selectinload(Client.groups),
+                selectinload(Client.group_history),
+                selectinload(Client.subscriptions).selectinload(Subscription.renewal_history),
+            )
+            .where(Client.id == db_client.id)
+        )
+        result = await self.db.execute(stmt)
+        db_client_full = result.scalar_one()
+
+        # 8. Приведение к dict перед Pydantic
+        client_out = {
+            "id": db_client_full.id,
+            "surname": db_client_full.surname,
+            "name": db_client_full.name,
+            "patronymic": db_client_full.patronymic,
+            "phone": db_client_full.phone,
+            "birth_date": db_client_full.birth_date,
+            "created_at": db_client_full.created_at,
+            "gender": db_client_full.gender,
+            "parents": [p.__dict__ for p in db_client_full.parents],
+            "diagnoses": [d.__dict__ for d in db_client_full.diagnoses],
+            "groups": [g.id for g in db_client_full.groups],  # берём только id
+            "group_history": [gh.__dict__ for gh in db_client_full.group_history],
+            "subscriptions": [
+                {
+                    **s.__dict__,
+                    "renewal_history": [r.__dict__ for r in s.renewal_history],
+                    "days_of_week": json.loads(s.days_of_week) if s.days_of_week else [],
+                }
+                for s in db_client_full.subscriptions
+            ],
+        }
+
+        return ClientResponseSchema.model_validate(client_out)
 
     async def get_client(self, client_id: str) -> Optional[ClientResponseSchema]:
         result = await self.db.execute(select(Client).filter(Client.id == client_id))
