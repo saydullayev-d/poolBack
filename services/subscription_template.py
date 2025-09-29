@@ -3,7 +3,7 @@ from sqlalchemy.future import select
 from fastapi import HTTPException
 from typing import Optional, List
 
-from models.client import SubscriptionTemplate
+from models import SubscriptionTemplate
 from schemas import SubscriptionTemplateCreateSchema, SubscriptionTemplateResponseSchema
 
 

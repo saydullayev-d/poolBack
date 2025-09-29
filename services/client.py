@@ -6,7 +6,7 @@ from typing import Optional
 import uuid
 import json
 
-from models.client import (
+from models import (
     Client, Parent, ClientDiagnosis, GroupHistory,
     Subscription, RenewalHistory, ClientGroup
 )

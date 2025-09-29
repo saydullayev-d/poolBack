@@ -3,7 +3,7 @@ from sqlalchemy.future import select
 from fastapi import HTTPException
 from typing import Optional, List
 
-from models.client import Diagnosis
+from models import Diagnosis
 from schemas import DiagnosisCreateSchema, DiagnosisResponseSchema
 
 

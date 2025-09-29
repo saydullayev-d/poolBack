@@ -5,7 +5,7 @@ from typing import List, Optional
 from .parent import ParentSchema
 from .diagnosis_client import DiagnosisSchema
 from .group_history import GroupHistorySchema
-from .subscription import SubscriptionSchema
+from .subscription import Subscription
 
 class ClientCreateSchema(BaseModel):
     surname: str
@@ -20,7 +20,7 @@ class ClientCreateSchema(BaseModel):
     blacklisted: bool = False
     groups: List[str] = []
     group_history: List[GroupHistorySchema] = []
-    subscriptions: List[SubscriptionSchema] = []
+    subscriptions: List[Subscription] = []
     photo: Optional[str] = None
 
 class ClientResponseSchema(ClientCreateSchema):

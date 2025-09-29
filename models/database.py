@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from core.config import settings
 from models.base import Base
-from models.client import (  # Explicit import to register models
+from models import (  
     Client, Parent, ClientDiagnosis, GroupHistory, Subscription, RenewalHistory,
     ClientGroup, Relation, Diagnosis, Group, SubscriptionTemplate
 )

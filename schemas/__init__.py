@@ -5,5 +5,9 @@ from .subscription_template import SubscriptionTemplateCreateSchema, Subscriptio
 from .parent import ParentSchema
 from .diagnosis_client import DiagnosisSchema
 from .group_history import GroupHistorySchema
-from .subscription import RenewalHistorySchema, SubscriptionSchema
+from .subscription import RenewalHistorySchema, Subscription, SubscriptionCreate
 from .client import ClientCreateSchema, ClientResponseSchema
+from .employee import EmployeeCreate, Employee
+from .contract import ContractCreate, Contract
+from .room import RoomCreate, Room
+from .schedule import Schedule, ScheduleCreate

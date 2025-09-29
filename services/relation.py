@@ -3,7 +3,7 @@ from sqlalchemy.future import select
 from fastapi import HTTPException
 from typing import Optional, List
 
-from models.client import Relation
+from models import Relation
 from schemas import RelationCreateSchema, RelationResponseSchema
 
 
