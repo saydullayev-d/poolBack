@@ -17,5 +17,6 @@ class Subscription(Base):
     remaining_classes = Column(Integer, nullable=False)
     is_paid = Column(Boolean, default=True)
     subscription_number = Column(String, unique=True, nullable=False)
+    contract_id = Column(String, ForeignKey("contracts.id"), nullable=True)
 
     renewal_history = relationship("RenewalHistory", backref="subscription")
