@@ -11,13 +11,29 @@ from api.routes.employee import router as employee_router
 from api.routes.room import router as room_router
 from api.routes.schedule import router as schedule_router
 from api.routes.subscription import router as subscription_router
+from contextlib import asynccontextmanager
+from models import (  
+    Client, Parent, ClientDiagnosis, GroupHistory, Subscription, RenewalHistory,
+    ClientGroup, Relation, Diagnosis, Group, SubscriptionTemplate, Contract, Employee, Room, User, Schedule
+)
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Client Management API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # выполняется при запуске приложения
+    await init_db()
+    print("✅ Database initialized successfully")
+    
+    yield  # здесь работает само приложение
+
+    # выполняется при завершении приложения
+    print("🛑 Application shutting down")
+
+app = FastAPI(title="Client Management API", lifespan=lifespan)
 
 app.include_router(clients_router)
 app.include_router(diagnoses_router)
@@ -37,6 +53,7 @@ app.add_middleware(
     allow_methods=["*"],   
     allow_headers=["*"],   
 )
+
 
 @app.get("/")
 def read_root():

@@ -4,7 +4,7 @@ from core.config import settings
 from models.base import Base
 from models import (  
     Client, Parent, ClientDiagnosis, GroupHistory, Subscription, RenewalHistory,
-    ClientGroup, Relation, Diagnosis, Group, SubscriptionTemplate
+    ClientGroup, Relation, Diagnosis, Group, SubscriptionTemplate, Contract, Employee, Room, User, Schedule
 )
 from typing_extensions import AsyncGenerator
 import logging
