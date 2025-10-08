@@ -26,12 +26,12 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # выполняется при запуске приложения
     await init_db()
-    print("✅ Database initialized successfully")
+    print("Database initialized successfully")
     
     yield  # здесь работает само приложение
 
     # выполняется при завершении приложения
-    print("🛑 Application shutting down")
+    print("Application shutting down")
 
 app = FastAPI(title="Client Management API", lifespan=lifespan)
 
