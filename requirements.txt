@@ -6,3 +6,5 @@ uvicorn==0.31.0
 aiosqlite==0.20.0  # Replaced asyncpg
 python-dotenv==1.0.1
 typing-extensions==4.12.2
+passlib
+python-jose
